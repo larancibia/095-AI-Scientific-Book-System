@@ -4,8 +4,13 @@ Searches scientific literature and synthesizes findings.
 """
 
 import os
+import sys
+from pathlib import Path
 from typing import List, Dict
-import anthropic
+
+# Add parent directory to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from core.ai_client import call_ai
 
 def run_research(args):
     """
@@ -133,15 +138,8 @@ def synthesize_with_ai(papers: List[Dict], query: str) -> str:
         for p in papers[:10]  # Use top 10 for synthesis
     ])
 
-    # Call Claude to synthesize
+    # Call AI (Claude or Gemini) to synthesize
     try:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            print("  Warning: ANTHROPIC_API_KEY not set. Returning basic summary.")
-            return create_basic_summary(papers)
-
-        client = anthropic.Anthropic(api_key=api_key)
-
         prompt = f"""You are a research synthesizer for technical book writing.
 
 Research Query: {query}
@@ -174,16 +172,19 @@ Format your response as:
 Be specific, cite paper titles when referencing findings.
 """
 
-        message = client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=4000,
-            messages=[{
-                "role": "user",
-                "content": prompt
-            }]
-        )
+        # Use AI client (tries Claude, falls back to Gemini if needed)
+        response = call_ai(prompt, provider="claude", max_tokens=4000)
 
-        return message.content[0].text
+        if response:
+            return response
+        else:
+            print("  Claude failed, trying Gemini...")
+            response = call_ai(prompt, provider="gemini")
+            if response:
+                return response
+            else:
+                print("  Both AIs failed, returning basic summary")
+                return create_basic_summary(papers)
 
     except Exception as e:
         print(f"  Error calling AI: {e}")

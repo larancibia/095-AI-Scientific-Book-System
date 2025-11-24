@@ -4,9 +4,14 @@ Designs rigorous experiments to test hypotheses.
 """
 
 import os
+import sys
 import yaml
-import anthropic
+from pathlib import Path
 from datetime import datetime
+
+# Add parent directory to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from core.ai_client import call_ai
 
 def design_experiment(args):
     """
@@ -44,13 +49,6 @@ def generate_experiment_design(hypothesis: str, participants: int, duration: int
     print("Designing experiment with AI...")
 
     try:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            print("  Warning: ANTHROPIC_API_KEY not set. Creating template.")
-            return create_template_design(hypothesis, participants, duration)
-
-        client = anthropic.Anthropic(api_key=api_key)
-
         prompt = f"""You are an experimental design expert helping to create rigorous experiments for a technical book.
 
 **Hypothesis to Test:**
@@ -118,14 +116,16 @@ Design a complete experimental protocol including:
 Format as structured YAML that can be parsed.
 """
 
-        message = client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=4000,
-            messages=[{"role": "user", "content": prompt}]
-        )
+        # Use AI client (tries Claude, falls back to Gemini if needed)
+        ai_response = call_ai(prompt, provider="claude", max_tokens=4000)
 
-        # Parse AI response
-        ai_response = message.content[0].text
+        if not ai_response:
+            print("  Claude failed, trying Gemini...")
+            ai_response = call_ai(prompt, provider="gemini")
+
+        if not ai_response:
+            print("  Both AIs failed, using template")
+            return create_template_design(hypothesis, participants, duration)
 
         # Try to extract YAML if present
         if "```yaml" in ai_response:

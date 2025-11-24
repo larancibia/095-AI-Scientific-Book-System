@@ -4,8 +4,12 @@ Validates logical consistency and evidence for all claims.
 """
 
 import os
-import anthropic
+import sys
 from pathlib import Path
+
+# Add parent directory to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from core.ai_client import call_ai
 
 LOGICAL_FALLACIES = [
     "Ad hominem",
@@ -63,13 +67,6 @@ def validate_with_ai(manuscript: str, strict: bool) -> str:
     print("Analyzing manuscript for logical rigor...")
 
     try:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            print("  Warning: ANTHROPIC_API_KEY not set.")
-            return create_basic_validation(manuscript)
-
-        client = anthropic.Anthropic(api_key=api_key)
-
         fallacies_list = "\n".join([f"- {f}" for f in LOGICAL_FALLACIES])
 
         prompt = f"""You are a critical thinking expert and scientific reviewer.
@@ -135,13 +132,19 @@ Your task: Analyze this technical manuscript for logical rigor and evidence-base
 Be {"extremely strict and" if strict else ""} specific. Quote exact passages when flagging issues.
 """
 
-        message = client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=4000,
-            messages=[{"role": "user", "content": prompt}]
-        )
+        # Use AI client (tries Claude, falls back to Gemini if needed)
+        response = call_ai(prompt, provider="claude", max_tokens=4000)
 
-        return message.content[0].text
+        if response:
+            return response
+        else:
+            print("  Claude failed, trying Gemini...")
+            response = call_ai(prompt, provider="gemini")
+            if response:
+                return response
+            else:
+                print("  Both AIs failed, using basic validation")
+                return create_basic_validation(manuscript)
 
     except Exception as e:
         print(f"  Error: {e}")
