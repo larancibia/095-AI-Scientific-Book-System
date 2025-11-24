@@ -1,0 +1,33 @@
+# Core AI & NLP
+anthropic>=0.40.0
+openai>=1.0.0
+
+# Research & Academic
+arxiv>=2.1.0
+scholarly>=1.7.0
+bibtexparser>=1.4.0
+
+# Data Analysis
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.11.0
+scikit-learn>=1.3.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.17.0
+
+# Document Generation
+reportlab>=4.0.0
+pyyaml>=6.0.0
+markdown>=3.4.0
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Optional (for advanced features)
+# jupyter>=1.0.0
+# selenium>=4.15.0
